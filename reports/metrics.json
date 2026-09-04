@@ -1,0 +1,25 @@
+{
+  "data_quality": {
+    "companies": 12,
+    "company_month_rows": 144,
+    "missing_cells": 0,
+    "annual_total_matches_months": true
+  },
+  "annual_transactions": 2273819,
+  "peak_month": "Aug",
+  "peak_month_transactions": 211493,
+  "trough_month": "Dec",
+  "trough_month_transactions": 164617,
+  "peak_to_trough_ratio": 1.284757953309804,
+  "largest_company": "Hertz",
+  "largest_company_share_pct": 18.504771048179297,
+  "top3_share_pct": 49.42803275018812,
+  "hhi": 1256.4718469644395,
+  "most_volatile_share_company": "Hertz",
+  "most_volatile_share_std_pct_points": 1.0006306706031245,
+  "highest_revenue_per_transaction_company": "Sixt",
+  "highest_revenue_per_transaction_usd": 557.5535597808934,
+  "company_row_revenue_sum_usd": 816143885.0,
+  "source_reported_revenue_total_usd": 816143884.0,
+  "revenue_reconciliation_difference_usd": 1.0
+}
