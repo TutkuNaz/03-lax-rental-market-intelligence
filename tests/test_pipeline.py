@@ -126,6 +126,35 @@ def test_text_parser_contract_with_synthetic_lawa_layout():
     ] == 45_000
 
 
+def test_transaction_parser_handles_repeated_headers_and_partial_year_payless():
+    repeated_header = " ".join(["Transactions MS"] * 7)
+    page_text = "\n".join(
+        [
+            repeated_header,
+            "Alpha 10 50% 10 50% 10 50% 10 50% 10 50% 10 50% 60",
+            "Beta 5 50% 5 50% 5 50% 5 50% 5 50% 5 50% 30",
+            repeated_header,
+            "Alpha 10 50% 10 50% 10 50% 10 50% 10 50% 10 50% 120",
+            "Beta 5 50% 5 50% 5 50% 5 50% 5 50% 5 50% 60",
+            "Payless 48 0.0% 166 0.1% 284 0.2% 498 0.0%",
+        ]
+    )
+
+    transactions = _parse_transactions(
+        page_text,
+        companies=["Alpha", "Beta", "Payless"],
+        expected_total=678,
+    ).set_index("company")
+
+    assert transactions.loc["Alpha", "annual_transactions"] == 120
+    assert transactions.loc["Payless", "jan"] == 0
+    assert transactions.loc["Payless", "sep"] == 0
+    assert transactions.loc["Payless", "oct"] == 48
+    assert transactions.loc["Payless", "nov"] == 166
+    assert transactions.loc["Payless", "dec"] == 284
+    assert transactions.loc["Payless", "annual_transactions"] == 498
+
+
 def test_run_materializes_all_outputs_from_a_fresh_directory(tmp_path: Path):
     transactions_path, revenue_path = _write_tables(tmp_path)
     (tmp_path / "sql").mkdir()
