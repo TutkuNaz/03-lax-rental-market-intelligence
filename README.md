@@ -1,13 +1,13 @@
 # LAX Rental Market Intelligence
 
-[![CI](https://github.com/atasardacagan/03-lax-rental-market-intelligence/actions/workflows/ci.yml/badge.svg)](https://github.com/atasardacagan/03-lax-rental-market-intelligence/actions/workflows/ci.yml)
-[![LAWA source check](https://github.com/atasardacagan/03-lax-rental-market-intelligence/actions/workflows/source-check.yml/badge.svg)](https://github.com/atasardacagan/03-lax-rental-market-intelligence/actions/workflows/source-check.yml)
+[![CI](https://github.com/TutkuNaz/03-lax-rental-market-intelligence/actions/workflows/ci.yml/badge.svg)](https://github.com/TutkuNaz/03-lax-rental-market-intelligence/actions/workflows/ci.yml)
+[![LAWA source check](https://github.com/TutkuNaz/03-lax-rental-market-intelligence/actions/workflows/source-check.yml/badge.svg)](https://github.com/TutkuNaz/03-lax-rental-market-intelligence/actions/workflows/source-check.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 A reproducible Python and SQL analysis of Los Angeles World Airports rental-car demand, seasonality, market share, concentration, and revenue benchmarks for calendar year 2024.
 
-Part of the [Automotive Open Data Hub](https://github.com/atasardacagan/automotive-data-portfolio), a curated collection of automotive and mobility datasets with reproducible starter analyses.
+Part of the [Automotive Open Data Hub](https://github.com/TutkuNaz/automotive-data-portfolio), a curated collection of automotive and mobility datasets with reproducible starter analyses.
 
 ## What this project answers
 
