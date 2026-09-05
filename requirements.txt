@@ -2,6 +2,6 @@ pandas==2.2.3
 numpy==2.3.5
 matplotlib==3.10.8
 plotly==6.5.2
-pdfplumber==0.11.9
+pdfplumber==0.11.10
 streamlit>=1.40,<2
 pytest==9.0.2
