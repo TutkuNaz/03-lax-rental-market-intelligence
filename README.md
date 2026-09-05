@@ -1,56 +1,55 @@
 # LAX Rental Market Intelligence
 
-A market-level analysis of Los Angeles World Airports (LAWA) rental-car activity for calendar year 2024.
+[![CI](https://github.com/atasardacagan/03-lax-rental-market-intelligence/actions/workflows/ci.yml/badge.svg)](https://github.com/atasardacagan/03-lax-rental-market-intelligence/actions/workflows/ci.yml)
+[![LAWA source check](https://github.com/atasardacagan/03-lax-rental-market-intelligence/actions/workflows/source-check.yml/badge.svg)](https://github.com/atasardacagan/03-lax-rental-market-intelligence/actions/workflows/source-check.yml)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-## Objective
+A reproducible Python and SQL analysis of Los Angeles World Airports rental-car demand, seasonality, market share, concentration, and revenue benchmarks for calendar year 2024.
 
-The project examines airport rental demand, seasonality, market concentration and company-level transaction share using public LAWA statistics.
+Part of the [Automotive Open Data Hub](https://github.com/atasardacagan/automotive-data-portfolio), a curated collection of automotive and mobility datasets with reproducible starter analyses.
 
-Questions addressed:
+## What this project answers
 
-- Which months have the highest and lowest rental transaction volume?
-- How large is the seasonal peak-to-trough difference?
-- How concentrated is the on-airport market?
-- Which company shares vary most from month to month?
+- Which months have the highest and lowest on-airport rental transaction volume?
+- How concentrated is the observed company-level market?
+- Which company shares vary most across the 12 reported months?
 - How does LAWA-reported gross revenue after exclusions compare with transaction volume?
 
-The analysis is based on aggregate public data. It does not estimate internal pricing, utilization, fleet size, customer behavior or profitability.
+The analysis uses aggregate public data. It does not estimate internal pricing, fleet utilization, customer behavior, margin, or profitability.
 
-## Data
+## Official source and provenance
 
-Source: **Los Angeles World Airports — CY2024 LAX On and Off Airport Monthly Stats**
+Primary source: [LAWA — CY2024 LAX On and Off Airport Monthly Stats](https://www.lawa.org/sites/lawa/files/documents/CY2024%20LAX%20On%20and%20Off%20Airport%20Monthly%20Stats.pdf).
 
-- Official PDF: https://www.lawa.org/sites/lawa/files/documents/CY2024%20LAX%20On%20and%20Off%20Airport%20Monthly%20Stats.pdf
-- Scope: on-airport rental-car transactions, market share and gross revenue after exclusions
-- LAWA disclaimer: https://www.lawa.org/disclaimer
-- Revenue figures are identified by LAWA as unaudited.
+The retrieval script downloads the official PDF, validates its file signature, extracts the transaction and revenue tables, and records the retrieval timestamp and SHA-256 hash locally. The original document and extracted raw tables are excluded from Git. LAWA's [rental-car statistics archive](https://www.lawa.org/lawa-investor-relations/statistics-for-lax/lax-rental-car-statistics) provides the path toward a multi-year release.
 
-The original PDF and extracted source tables are not committed. `scripts/download_data.py` retrieves and parses the official document at runtime.
+See [data/README.md](data/README.md) for source scope, licensing notes, and the documented $1 revenue reconciliation difference.
 
-See [`data/README.md`](data/README.md) for provenance and source-handling notes.
+## Analytical workflow
 
-## Approach
+1. Download the canonical report or parse a supplied local copy.
+2. Validate required columns, numeric values, unique companies, and company coverage across tables.
+3. Reconcile all 12 monthly company rows to annual transactions.
+4. Check reported annual shares against transaction-derived shares.
+5. Reshape the source to a company-month table and compute monthly shares.
+6. Materialize both analytical tables in an indexed SQLite database.
+7. Execute version-controlled SQL and export its results to Markdown.
+8. Generate metrics and SVG figures for the README and dashboard.
 
-1. Download the official LAWA report.
-2. Extract monthly transaction and annual revenue tables.
-3. Validate company names, missing values and annual reconciliation.
-4. Reshape monthly data into company-month format.
-5. Calculate monthly market shares and seasonality measures.
-6. Materialize the analytical tables in SQLite.
-7. Run SQL analysis for concentration, ranking and share volatility.
-8. Publish figures, executed notebooks and an interactive dashboard.
+## Data quality contract
 
-## Stack
+- 12 companies and 144 company-month observations
+- 2,273,819 on-airport transactions in CY2024
+- monthly company values reconcile to annual source totals
+- transaction and revenue company sets match one-to-one
+- printed revenue total: $816,143,884
+- sum of printed company revenue rows: $816,143,885
+- preserved reconciliation difference: $1
 
-Python · pandas · NumPy · SQLite · SQL · Plotly · Streamlit · pdfplumber · pytest · GitHub Actions
+The pipeline fails clearly when the PDF-derived schema, reconciliation, or company coverage changes.
 
-## Data Quality
-
-The analytical dataset contains **12 companies** and **144 company-month observations**.
-
-Monthly transactions reconcile to the annual source totals. One source-level exception is preserved: the printed annual revenue total is **$816,143,884**, while the sum of company rows is **$816,143,885**, a **$1 difference**.
-
-## Analysis
+## Findings
 
 ![Monthly transactions](reports/figures/monthly_transactions.svg)
 
@@ -58,86 +57,66 @@ Monthly transactions reconcile to the annual source totals. One source-level exc
 
 ![Monthly share heatmap](reports/figures/market_share_heatmap.svg)
 
-Key findings:
+- August is the peak month with **211,493** transactions; December is the trough with **164,617**.
+- Peak volume is approximately **28.5%** above the trough.
+- The three largest companies account for **49.4%** of annual transactions.
+- Transaction-share HHI is approximately **1,256** on the 0–10,000 scale.
+- Hertz has the highest monthly share variability at approximately **0.96 percentage points**.
 
-- CY2024 on-airport rental transactions: **2,273,819**.
-- **August** recorded the highest monthly volume at **211,493** transactions.
-- **December** recorded the lowest at **164,617**.
-- Peak monthly volume was approximately **28.5%** above the trough.
-- The three largest companies accounted for **49.4%** of annual transactions.
-- Transaction-share HHI was approximately **1,256** on the 0–10,000 scale.
-- Hertz showed the highest monthly share variability in the source year at roughly **1.00 percentage point** standard deviation.
+Volatility is defined consistently in Python and SQL as the population standard deviation across all 12 monthly percentages. Concentration measures are descriptive market indicators, not regulatory conclusions.
 
-The concentration measures are used as descriptive market indicators, not regulatory conclusions.
-
-## Revenue Benchmark
+## Revenue benchmark
 
 ![Revenue per transaction](reports/figures/revenue_per_transaction.svg)
 
-Sixt has the highest calculated gross-revenue-after-exclusions per transaction at approximately **$558** in the 2024 data.
+Sixt has the highest calculated gross-revenue-after-exclusions per transaction at approximately **$558** in the source year. This ratio is not a rental price, margin, or profitability measure: rental duration, vehicle mix, fees, and reporting definitions are not controlled for.
 
-This ratio should not be interpreted as rental price, margin or profitability. Rental duration, vehicle mix, fees and reporting definitions are not controlled for in the public source.
+## SQL and dashboard
 
-## SQL
+The SQL layer covers monthly seasonality, company ranking and HHI contribution, population share volatility, and revenue per transaction. The pipeline regenerates [reports/sql_results.md](reports/sql_results.md) directly from [sql/business_analysis.sql](sql/business_analysis.sql).
 
-The SQL layer covers:
+After building the processed data, launch the interactive explorer with:
 
-- monthly seasonality indices;
-- company ranking and HHI contributions;
-- monthly share volatility;
-- annual revenue-per-transaction benchmarking.
+    streamlit run dashboard/app.py
 
-Executed outputs are available in [`reports/sql_results.md`](reports/sql_results.md).
+## Run locally
 
-## Business Interpretation
+    python -m venv .venv
+    source .venv/bin/activate
+    python -m pip install -r requirements.txt
+    python scripts/download_data.py
+    python scripts/run_analysis.py
+    python -m pytest -q
 
-- Rental demand at LAX is meaningfully seasonal rather than evenly distributed across the year.
-- Multi-year data would be required before converting 2024 seasonality into staffing or fleet-allocation rules.
-- Passenger arrivals and deplanements would improve demand normalization and help separate airport traffic growth from rental-market movement.
-- Revenue per transaction is useful as a descriptive benchmark but not as a substitute for pricing or profitability analysis.
+Windows activation: .venv\Scripts\activate
 
-## Dashboard
+To parse an existing report without downloading it again:
 
-The Streamlit dashboard is available in [`dashboard/app.py`](dashboard/app.py).
+    python scripts/download_data.py --pdf /path/to/CY2024-report.pdf
 
-```bash
-streamlit run dashboard/app.py
-```
+## Repository layout
 
-## Run Locally
+    03-lax-rental-market-intelligence/
+    ├── data/              # provenance and ignored raw/processed boundaries
+    ├── notebooks/         # transparent analytical views
+    ├── scripts/           # PDF retrieval, parsing, and pipeline entry point
+    ├── src/rental_market/ # tested transformation and analysis package
+    ├── sql/               # executable business queries
+    ├── dashboard/         # Streamlit explorer
+    ├── reports/           # compact reference outputs
+    ├── tests/             # schema, parser, metric, and end-to-end tests
+    └── .github/           # CI, dependency updates, and source monitoring
 
-```bash
-python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-python scripts/download_data.py
-python scripts/run_analysis.py
-pytest -q
-```
+## Roadmap and limitations
 
-## Repository Layout
+The current analysis covers one calendar year and cannot separate airport traffic growth from rental-market dynamics. The public source omits rental duration, vehicle class, fleet size, utilization, and customer attributes. Revenue is unaudited according to LAWA.
 
-```text
-03-lax-rental-market-intelligence/
-├── data/
-├── notebooks/
-├── scripts/
-├── src/rental_market/
-├── sql/
-├── dashboard/
-├── reports/
-├── tests/
-└── .github/workflows/ci.yml
-```
+The [roadmap](ROADMAP.md) defines a multi-year panel, company-name normalization, passenger-volume normalization, revised-report handling, and a versioned machine-readable release.
 
-## Limitations
+## Contributing and security
 
-- The analysis covers one calendar year.
-- Source data are aggregate and do not include rental duration, vehicle class, fleet size, utilization or customer attributes.
-- Revenue figures are unaudited according to LAWA.
-- Revenue per transaction is not equivalent to price, margin or profit.
-- Company and parent-brand structures are kept separate unless the business question requires consolidation.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the data and parser checklist. Report vulnerabilities privately using [SECURITY.md](SECURITY.md).
 
 ## License
 
-The repository does not redistribute the original LAWA PDF. LAWA's general disclaimer states that website information is considered public domain unless otherwise indicated; additional terms apply within its Investor Relations area. Repository code and original analysis are MIT licensed.
+Repository code and original analysis are MIT licensed. The original LAWA document is not redistributed; consult LAWA for the source material's current terms.

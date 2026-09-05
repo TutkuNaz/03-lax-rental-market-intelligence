@@ -1,12 +1,14 @@
-"""Download the official CY2024 LAX rental-car PDF and extract analysis tables.
+"""Download the official CY2024 LAWA PDF and extract the analysis tables.
 
-The source PDF itself is not committed. LAWA's general website disclaimer states
-that information is public domain unless otherwise indicated, while its Investor
-Relations section has additional Terms of Use. This project therefore keeps the
-original document external and regenerates tabular inputs from LAWA at runtime.
+The source document remains external. The script can download the canonical PDF
+or parse a caller-supplied local copy, making parser validation repeatable.
 """
 from __future__ import annotations
 
+from argparse import ArgumentParser
+from datetime import datetime, timezone
+import hashlib
+import json
 from pathlib import Path
 import re
 import urllib.request
@@ -17,27 +19,49 @@ import pdfplumber
 ROOT = Path(__file__).resolve().parents[1]
 RAW = ROOT / "data" / "raw"
 PDF_URL = "https://www.lawa.org/sites/lawa/files/documents/CY2024%20LAX%20On%20and%20Off%20Airport%20Monthly%20Stats.pdf"
+ARCHIVE_URL = "https://www.lawa.org/lawa-investor-relations/statistics-for-lax/lax-rental-car-statistics"
 PDF_PATH = RAW / "CY2024_LAX_RAC_Monthly_Stats.pdf"
-COMPANIES = ["Alamo", "Avis", "Budget", "Dollar", "Enterprise", "Fox", "Hertz", "National", "Payless", "Sixt", "Thrifty", "Zipcar"]
+EXPECTED_ANNUAL_TRANSACTIONS = 2_273_819
+COMPANIES = [
+    "Alamo",
+    "Avis",
+    "Budget",
+    "Dollar",
+    "Enterprise",
+    "Fox",
+    "Hertz",
+    "National",
+    "Payless",
+    "Sixt",
+    "Thrifty",
+    "Zipcar",
+]
 MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
 
 
-def _download_pdf() -> None:
-    RAW.mkdir(parents=True, exist_ok=True)
-    request = urllib.request.Request(PDF_URL, headers={"User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(request, timeout=120) as response:  # noqa: S310 - fixed official URL
-        PDF_PATH.write_bytes(response.read())
+def _download_pdf(destination: Path = PDF_PATH) -> Path:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    request = urllib.request.Request(
+        PDF_URL,
+        headers={"User-Agent": "automotive-open-data/1.0"},
+    )
+    with urllib.request.urlopen(request, timeout=120) as response:  # noqa: S310
+        payload = response.read()
+    if not payload.startswith(b"%PDF"):
+        raise RuntimeError("LAWA source did not return a PDF document")
+    destination.write_bytes(payload)
+    return destination
 
 
 def _numbers(line: str) -> list[str]:
     return re.findall(r"(?:\$\s*)?[0-9][0-9,]*(?:\.\d+)?%?", line)
 
 
-def _company_lines(text: str) -> dict[str, str]:
+def _company_lines(text: str, companies: list[str] = COMPANIES) -> dict[str, str]:
     rows: dict[str, str] = {}
     for raw_line in text.splitlines():
         line = " ".join(raw_line.split())
-        for company in COMPANIES:
+        for company in companies:
             if line.startswith(company + " ") or line == company:
                 rows[company] = line
                 break
@@ -46,10 +70,17 @@ def _company_lines(text: str) -> dict[str, str]:
 
 def _transaction_half(line: str, second_half: bool) -> tuple[list[int], int | None]:
     tokens = _numbers(line)
-    values = [int(tokens[i].replace(",", "")) for i in range(0, min(12, len(tokens)), 2)]
+    values = [
+        int(tokens[index].replace(",", ""))
+        for index in range(0, min(12, len(tokens)), 2)
+    ]
     period_total = int(tokens[12].replace(",", "")) if len(tokens) >= 13 else None
     if second_half and len(tokens) < 13:
-        present = [int(t.replace(",", "")) for t in tokens if not t.endswith("%")]
+        present = [
+            int(token.replace(",", ""))
+            for token in tokens
+            if not token.endswith("%")
+        ]
         annual = present[-1] if present else None
         month_values = [0, 0, 0, 0, 0, 0]
         if len(present) >= 4:
@@ -58,52 +89,120 @@ def _transaction_half(line: str, second_half: bool) -> tuple[list[int], int | No
     return values, period_total
 
 
-def _parse_transactions(page_text: str) -> pd.DataFrame:
+def _parse_transactions(
+    page_text: str,
+    companies: list[str] = COMPANIES,
+    expected_total: int = EXPECTED_ANNUAL_TRANSACTIONS,
+) -> pd.DataFrame:
     parts = page_text.split("Transactions MS")
     if len(parts) < 3:
-        raise RuntimeError("Could not identify transaction-table halves in the LAWA PDF.")
-    first = _company_lines(parts[1])
-    second = _company_lines("Transactions MS".join(parts[2:]))
+        raise RuntimeError("Could not identify transaction-table halves in the LAWA PDF")
+    first = _company_lines(parts[1], companies)
+    second = _company_lines("Transactions MS".join(parts[2:]), companies)
     records = []
-    for company in COMPANIES:
+    for company in companies:
         jan_jun, _ = _transaction_half(first.get(company, ""), False)
         jul_dec, annual = _transaction_half(second.get(company, ""), True)
-        if company != "Payless" and (len(jan_jun) != 6 or len(jul_dec) != 6 or annual is None):
-            raise RuntimeError(f"Failed to parse transaction row for {company}.")
+        if company != "Payless" and (
+            len(jan_jun) != 6 or len(jul_dec) != 6 or annual is None
+        ):
+            raise RuntimeError(f"Failed to parse transaction row for {company}")
         if company == "Payless":
             jan_jun = [0] * 6
-        vals = (jan_jun + jul_dec)[:12]
-        record = {"company": company, **dict(zip(MONTHS, vals)), "annual_transactions": annual or sum(vals)}
-        record["annual_market_share_pct"] = round(record["annual_transactions"] / 2_273_819 * 100, 1)
+        values = (jan_jun + jul_dec)[:12]
+        record = {
+            "company": company,
+            **dict(zip(MONTHS, values)),
+            "annual_transactions": annual or sum(values),
+        }
+        record["annual_market_share_pct"] = round(
+            record["annual_transactions"] / expected_total * 100,
+            1,
+        )
         records.append(record)
     frame = pd.DataFrame(records)
-    if int(frame["annual_transactions"].sum()) != 2_273_819:
-        raise RuntimeError("Extracted annual transaction total does not match the source report.")
+    extracted_total = int(frame["annual_transactions"].sum())
+    if extracted_total != expected_total:
+        raise RuntimeError(
+            "Extracted annual transaction total does not match the source report: "
+            f"expected {expected_total:,}, received {extracted_total:,}"
+        )
     return frame
 
 
-def _parse_annual_revenue(page_text: str) -> pd.DataFrame:
-    rows = _company_lines(page_text)
+def _parse_annual_revenue(
+    page_text: str,
+    companies: list[str] = COMPANIES,
+) -> pd.DataFrame:
+    rows = _company_lines(page_text, companies)
     records = []
-    for company in COMPANIES:
+    for company in companies:
         tokens = _numbers(rows.get(company, ""))
-        money = [int(t.replace("$", "").replace(",", "")) for t in tokens if not t.endswith("%")]
+        money = [
+            int(token.replace("$", "").replace(",", ""))
+            for token in tokens
+            if not token.endswith("%")
+        ]
         if not money:
-            raise RuntimeError(f"Failed to parse revenue row for {company}.")
-        records.append({"company": company, "annual_gross_revenue_after_exclusions_usd": money[-1]})
+            raise RuntimeError(f"Failed to parse revenue row for {company}")
+        records.append(
+            {
+                "company": company,
+                "annual_gross_revenue_after_exclusions_usd": money[-1],
+            }
+        )
     return pd.DataFrame(records)
 
 
-def main() -> None:
-    _download_pdf()
-    with pdfplumber.open(PDF_PATH) as pdf:
+def extract_pdf(pdf_path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
+    with pdfplumber.open(pdf_path) as pdf:
+        if len(pdf.pages) < 2:
+            raise RuntimeError("LAWA source PDF must contain at least two pages")
         revenue_text = pdf.pages[0].extract_text(layout=True) or ""
         transaction_text = pdf.pages[1].extract_text(layout=True) or ""
-    transactions = _parse_transactions(transaction_text)
-    revenue = _parse_annual_revenue(revenue_text)
+    return _parse_transactions(transaction_text), _parse_annual_revenue(revenue_text)
+
+
+def _write_source_metadata(pdf_path: Path, downloaded: bool) -> None:
+    payload = pdf_path.read_bytes()
+    metadata = {
+        "publisher": "Los Angeles World Airports (LAWA)",
+        "report_year": 2024,
+        "source_url": PDF_URL,
+        "archive_url": ARCHIVE_URL,
+        "retrieved_at_utc": datetime.now(timezone.utc).isoformat(),
+        "downloaded_by_script": downloaded,
+        "pdf_sha256": hashlib.sha256(payload).hexdigest(),
+    }
+    (RAW / "source_metadata.json").write_text(
+        json.dumps(metadata, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
+def main() -> None:
+    parser = ArgumentParser(description="Download or parse the official CY2024 LAWA report")
+    parser.add_argument(
+        "--pdf",
+        type=Path,
+        help="Parse an existing local copy instead of downloading the canonical PDF",
+    )
+    args = parser.parse_args()
+
+    RAW.mkdir(parents=True, exist_ok=True)
+    downloaded = args.pdf is None
+    pdf_path = _download_pdf() if downloaded else args.pdf.resolve()
+    if not pdf_path.is_file():
+        raise SystemExit(f"PDF not found: {pdf_path}")
+
+    transactions, revenue = extract_pdf(pdf_path)
     transactions.to_csv(RAW / "lax_rental_transactions_2024.csv", index=False)
     revenue.to_csv(RAW / "lax_rental_annual_revenue_2024.csv", index=False)
-    print(f"Extracted {len(transactions)} companies and {transactions['annual_transactions'].sum():,} transactions.")
+    _write_source_metadata(pdf_path, downloaded)
+    print(
+        f"Extracted {len(transactions)} companies and "
+        f"{transactions['annual_transactions'].sum():,} transactions"
+    )
 
 
 if __name__ == "__main__":

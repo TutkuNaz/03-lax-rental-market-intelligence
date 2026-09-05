@@ -1,0 +1,14 @@
+{
+  "publisher": "Los Angeles World Airports (LAWA)",
+  "report_title": "CY2024 LAX On and Off Airport Monthly Stats",
+  "report_year": 2024,
+  "report_url": "https://www.lawa.org/sites/lawa/files/documents/CY2024%20LAX%20On%20and%20Off%20Airport%20Monthly%20Stats.pdf",
+  "archive_url": "https://www.lawa.org/lawa-investor-relations/statistics-for-lax/lax-rental-car-statistics",
+  "scope": "On-airport rental-car monthly transactions and annual gross revenue after exclusions",
+  "expected_company_count": 12,
+  "expected_company_month_rows": 144,
+  "expected_annual_transactions": 2273819,
+  "printed_annual_revenue_total_usd": 816143884,
+  "volatility_definition": "Population standard deviation of 12 monthly market-share percentages (ddof=0)",
+  "raw_files_committed": false
+}

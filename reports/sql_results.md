@@ -1,6 +1,8 @@
-# SQL analysis outputs — 03-lax-rental-market-intelligence
+# Executed SQL results
 
-## Query 1
+Generated from the cleaned CY2024 LAWA analytical tables.
+
+## 1. Monthly demand profile and seasonality relative to the 2024 monthly average
 
 | month | total_transactions | seasonality_index |
 | --- | --- | --- |
@@ -17,7 +19,7 @@
 | nov | 183581 | 0.969 |
 | dec | 164617 | 0.869 |
 
-## Query 2
+## 2. Annual market ranking and concentration contribution
 
 | company | annual_transactions | share_pct | market_rank | hhi_contribution |
 | --- | --- | --- | --- | --- |
@@ -32,9 +34,9 @@
 | Fox | 110403 | 4.86 | 9 | 23.57 |
 | Dollar | 60114 | 2.64 | 10 | 6.99 |
 | Zipcar | 2108 | 0.09 | 11 | 0.01 |
-| Payless | 498 | 0.02 | 12 | 0.0 |
+| Payless | 498 | 0.02 | 12 | 0 |
 
-## Query 3
+## 3. Population standard deviation of each company's 12 monthly shares
 
 | company | avg_share_pct | share_stddev_pct_points |
 | --- | --- | --- |
@@ -51,19 +53,19 @@
 | Payless | 0.02 | 0.051 |
 | Zipcar | 0.09 | 0.03 |
 
-## Query 4
+## 4. Revenue-per-transaction benchmark (descriptive, not profit or margin)
 
 | company | annual_transactions | annual_gross_revenue | gross_revenue_per_transaction |
 | --- | --- | --- | --- |
-| Sixt | 142579 | 79495429.0 | 557.55 |
-| Dollar | 60114 | 26821933.0 | 446.18 |
-| Alamo | 208718 | 88298063.0 | 423.05 |
-| Thrifty | 115688 | 43244471.0 | 373.8 |
-| Payless | 498 | 185835.0 | 373.16 |
-| Hertz | 420765 | 155099800.0 | 368.61 |
-| Budget | 250358 | 89026433.0 | 355.6 |
-| Enterprise | 317610 | 109975152.0 | 346.26 |
-| Avis | 385529 | 119988077.0 | 311.23 |
-| Fox | 110403 | 33249574.0 | 301.17 |
-| National | 259449 | 70366873.0 | 271.22 |
-| Zipcar | 2108 | 392245.0 | 186.07 |
+| Sixt | 142579 | 79495429 | 557.55 |
+| Dollar | 60114 | 26821933 | 446.18 |
+| Alamo | 208718 | 88298063 | 423.05 |
+| Thrifty | 115688 | 43244471 | 373.8 |
+| Payless | 498 | 185835 | 373.16 |
+| Hertz | 420765 | 155099800 | 368.61 |
+| Budget | 250358 | 89026433 | 355.6 |
+| Enterprise | 317610 | 109975152 | 346.26 |
+| Avis | 385529 | 119988077 | 311.23 |
+| Fox | 110403 | 33249574 | 301.17 |
+| National | 259449 | 70366873 | 271.22 |
+| Zipcar | 2108 | 392245 | 186.07 |

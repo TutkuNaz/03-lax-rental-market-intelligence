@@ -1,1 +1,1 @@
-"""LAX rental market intelligence package."""
+"""LAX rental-market intelligence package."""

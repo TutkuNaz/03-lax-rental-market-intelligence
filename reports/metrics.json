@@ -1,9 +1,17 @@
 {
+  "source": {
+    "organization": "Los Angeles World Airports (LAWA)",
+    "report_year": 2024,
+    "report_url": "https://www.lawa.org/sites/lawa/files/documents/CY2024%20LAX%20On%20and%20Off%20Airport%20Monthly%20Stats.pdf",
+    "archive_url": "https://www.lawa.org/lawa-investor-relations/statistics-for-lax/lax-rental-car-statistics"
+  },
   "data_quality": {
     "companies": 12,
     "company_month_rows": 144,
     "missing_cells": 0,
-    "annual_total_matches_months": true
+    "annual_total_matches_months": true,
+    "market_share_matches_transactions": true,
+    "revenue_company_match": true
   },
   "annual_transactions": 2273819,
   "peak_month": "Aug",
@@ -15,8 +23,9 @@
   "largest_company_share_pct": 18.504771048179297,
   "top3_share_pct": 49.42803275018812,
   "hhi": 1256.4718469644395,
+  "share_volatility_definition": "Population standard deviation of 12 monthly market-share percentages (ddof=0)",
   "most_volatile_share_company": "Hertz",
-  "most_volatile_share_std_pct_points": 1.0006306706031245,
+  "most_volatile_share_std_pct_points": 0.9580309288878346,
   "highest_revenue_per_transaction_company": "Sixt",
   "highest_revenue_per_transaction_usd": 557.5535597808934,
   "company_row_revenue_sum_usd": 816143885.0,
