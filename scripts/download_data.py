@@ -68,6 +68,18 @@ def _company_lines(text: str, companies: list[str] = COMPANIES) -> dict[str, str
     return rows
 
 
+def _company_rows(text: str, companies: list[str] = COMPANIES) -> dict[str, list[str]]:
+    """Collect repeated company rows while ignoring duplicated table headers."""
+    rows = {company: [] for company in companies}
+    for raw_line in text.splitlines():
+        line = " ".join(raw_line.split())
+        for company in companies:
+            if line.startswith(company + " ") or line == company:
+                rows[company].append(line)
+                break
+    return rows
+
+
 def _transaction_half(line: str, second_half: bool) -> tuple[list[int], int | None]:
     tokens = _numbers(line)
     values = [
@@ -94,21 +106,27 @@ def _parse_transactions(
     companies: list[str] = COMPANIES,
     expected_total: int = EXPECTED_ANNUAL_TRANSACTIONS,
 ) -> pd.DataFrame:
-    parts = page_text.split("Transactions MS")
-    if len(parts) < 3:
-        raise RuntimeError("Could not identify transaction-table halves in the LAWA PDF")
-    first = _company_lines(parts[1], companies)
-    second = _company_lines("Transactions MS".join(parts[2:]), companies)
+    rows = _company_rows(page_text, companies)
     records = []
     for company in companies:
-        jan_jun, _ = _transaction_half(first.get(company, ""), False)
-        jul_dec, annual = _transaction_half(second.get(company, ""), True)
-        if company != "Payless" and (
-            len(jan_jun) != 6 or len(jul_dec) != 6 or annual is None
-        ):
-            raise RuntimeError(f"Failed to parse transaction row for {company}")
         if company == "Payless":
+            if len(rows[company]) != 1:
+                raise RuntimeError(
+                    f"Expected one partial-year transaction row for {company}; "
+                    f"found {len(rows[company])}"
+                )
             jan_jun = [0] * 6
+            jul_dec, annual = _transaction_half(rows[company][0], True)
+        else:
+            if len(rows[company]) != 2:
+                raise RuntimeError(
+                    f"Expected two transaction rows for {company}; "
+                    f"found {len(rows[company])}"
+                )
+            jan_jun, _ = _transaction_half(rows[company][0], False)
+            jul_dec, annual = _transaction_half(rows[company][1], True)
+        if len(jan_jun) != 6 or len(jul_dec) != 6 or annual is None:
+            raise RuntimeError(f"Failed to parse transaction row for {company}")
         values = (jan_jun + jul_dec)[:12]
         record = {
             "company": company,
